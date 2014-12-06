@@ -1,6 +1,48 @@
 #include "test.h"
 
 TESTS {
+	subtest { /* upper/lower conversion */
+		char *s = NULL;
+		size_t i = 0;
+
+		free(s); s = strdup("a simple string");
+		irc_toupper(s, strlen(s));
+		is_string(s, "A SIMPLE STRING", "ascii 7-bit upcase");
+		irc_tolower(s, strlen(s));
+		is_string(s, "a simple string", "ascii 7-bit downcase");
+
+		free(s); s = strdup("MiXeD cAsE\r\n");
+		irc_toupper(s, strlen(s));
+		is_string(s, "MIXED CASE\r\n", "mixed -> upper");
+
+		free(s); s = strdup("MiXeD cAsE\r\n");
+		irc_tolower(s, strlen(s));
+		is_string(s, "mixed case\r\n", "mixed -> lower");
+
+		free(s); s = strdup("scandinavia {}|^[]\\~ case");
+		irc_tolower(s, strlen(s));
+		is_string(s, "scandinavia {}|^{}|^ case", "scandinavian -> lower");
+
+		free(s); s = strdup("scandinavia {}|^[]\\~ case");
+		irc_toupper(s, strlen(s));
+		is_string(s, "SCANDINAVIA []\\~[]\\~ CASE", "scandinavian -> upper");
+
+		unsigned char u[2] = {0};
+		for (i = 0; i <= 255; i++) {
+			if (i > 0x40 && i < 0x5f) continue; /* A-Z (+scandinavia) */
+			if (i > 0x60 && i < 0x7f) continue; /* a-z (+scandinavia) */
+
+			u[0] = i; irc_toupper(u, 1);
+			is_int(u[0], i, "upper[%i] == %i (%x)", i, i, i);
+			u[0] = i; irc_tolower(u, 1);
+			is_int(u[0], i, "lower[%i] == %i (%x)", i, i, i);
+		}
+
+		free(s);
+	}
+
+	/****************************************************************************/
+
 	subtest {
 		FILE *t = tmpfile();
 		int fd = fileno(t);

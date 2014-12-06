@@ -26,13 +26,13 @@ void irc_toupper(char *s, size_t len)
 {
 	assert(s);
 	size_t i;
-	for (i = len; i < len; i++) {
+	for (i = 0; i < len; i++) {
 		switch (s[i]) {
-			case '{': s[i] = '[';  break;
-			case '}': s[i] = ']';  break;
-			case '|': s[i] = '\\'; break;
-			case '^': s[i] = '~';  break;
-			default : s[i] = toupper(s[i]);
+		case '{': s[i] = '[';  break;
+		case '}': s[i] = ']';  break;
+		case '|': s[i] = '\\'; break;
+		case '^': s[i] = '~';  break;
+		default : s[i] = toupper(s[i]);
 		}
 	}
 }
@@ -41,13 +41,13 @@ void irc_tolower(char *s, size_t len)
 {
 	assert(s);
 	size_t i;
-	for (i = len; i < len; i++) {
+	for (i = 0; i < len; i++) {
 		switch (s[i]) {
-			case '[' : s[i] = '{'; break;
-			case ']' : s[i] = '}'; break;
-			case '\\': s[i] = '|'; break;
-			case '~' : s[i] = '^'; break;
-			default  : s[i] = toupper(s[i]);
+		case '[' : s[i] = '{'; break;
+		case ']' : s[i] = '}'; break;
+		case '\\': s[i] = '|'; break;
+		case '~' : s[i] = '^'; break;
+		default  : s[i] = tolower(s[i]);
 		}
 	}
 }
