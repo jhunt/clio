@@ -22,9 +22,10 @@ static inline char* s_token(char **src)
 
 /**************************************************************************/
 
-void irc_toupper(char *s, size_t len)
+void irc_toupper(void *_, size_t len)
 {
-	assert(s);
+	assert(_);
+	char *s = (char *)_;
 	size_t i;
 	for (i = 0; i < len; i++) {
 		switch (s[i]) {
@@ -37,9 +38,10 @@ void irc_toupper(char *s, size_t len)
 	}
 }
 
-void irc_tolower(char *s, size_t len)
+void irc_tolower(void *_, size_t len)
 {
-	assert(s);
+	assert(_);
+	char *s = (char *)_;
 	size_t i;
 	for (i = 0; i < len; i++) {
 		switch (s[i]) {

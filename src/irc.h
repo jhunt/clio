@@ -325,8 +325,8 @@ typedef struct {
 
 /*********************************/
 
-void irc_toupper(char *s, size_t len);
-void irc_tolower(char *s, size_t len);
+void irc_toupper(void *_, size_t len);
+void irc_tolower(void *_, size_t len);
 
 buffer_t* buffer_new(size_t size);
 int buffer_read(buffer_t *buf, int fd);
