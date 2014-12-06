@@ -72,6 +72,7 @@ int buffer_read(buffer_t *buf, int fd)
 	if (nread < 0) return -1;
 
 	buf->seek += nread;
+	buf->buf[buf->seek] = '\0';
 	return buf->seek;
 }
 

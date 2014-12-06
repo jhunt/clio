@@ -43,7 +43,7 @@ TESTS {
 
 	/****************************************************************************/
 
-	subtest {
+	subtest { /* buffer with small messages */
 		FILE *t = tmpfile();
 		int fd = fileno(t);
 
@@ -74,7 +74,7 @@ TESTS {
 		          "first line is removed from buffer");
 		is_string(m->command, "PASS", "parsed PASS message from buffer");
 		is_string(m->args[0], "supersecret", "parsed arg $1 from buffer");
-		is_null(m->args[1], "no arg $2 from buffer message");
+		is_null(m->args[1], "no arg $2 from buffer");
 
 		m = buffer_msg(buf);
 		isnt_null(m, "got a message from the buffer");
@@ -83,7 +83,7 @@ TESTS {
 		          "second line is removed from buffer");
 		is_string(m->command, "NICK", "parsed NICK message from buffer");
 		is_string(m->args[0], "johnny0", "parsed arg $1 from buffer");
-		is_null(m->args[1], "no arg $2 from buffer message");
+		is_null(m->args[1], "no arg $2 from buffer");
 
 		m = buffer_msg(buf);
 		isnt_null(m, "got a message from the buffer");
@@ -94,13 +94,86 @@ TESTS {
 		is_string(m->args[1], "8", "parsed arg $2 from buffer");
 		is_string(m->args[2], "*", "parsed arg $3 from buffer");
 		is_string(m->args[3], "Johnny Zero", "parsed arg $4 from buffer");
-		is_null(m->args[4], "no arg $4 from buffer message");
+		is_null(m->args[4], "no arg $4 from buffer");
 
 		m = buffer_msg(buf);
 		is_null(m, "no more messages to parse from buffer");
 
 		n = buffer_read(buf, fd);
 		is_int(n, 0, "EOF reached on fd");
+
+		fclose(t);
+	}
+
+	subtest { /* buffer with large messages */
+		FILE *t = tmpfile();
+		int fd = fileno(t);
+
+		fprintf(t, "PRIVMSG foo :this is a long message (<64 chars)" /* 47 */ "\r\n");
+		fprintf(t, "PRIVMSG foo :another long message (>32 chars)"   /* 45 */ "\r\n");
+		fprintf(t, "NICK renamed"                                    /* 12 */ "\r\n");
+		rewind(t);
+
+		buffer_t *buf = buffer_new(64);
+		isnt_null(buf, "buffer_new returned a new buffer");
+		is_int(buf->size, 64, "new buffer size is 64 bytes");
+		is_int(buf->seek, 0, "initial buffer seek offset is 0");
+		is_string(buf->buf, "", "buffer is initially empty");
+
+		int n = buffer_read(buf, fd);
+		is_int(n, buf->seek, "buffer_read returns the seek offset");
+		is_int(buf->seek, 63, "filled the buffer with 63 (+\\0) read characters");
+		is_string(buf->buf, "PRIVMSG foo :this is a long message (<64 chars)\r\n"
+		                    "PRIVMSG foo :a", /* didn't get all of the next line */
+		          "read first full line and part of the second");
+
+		msg_t *m = buffer_msg(buf);
+		isnt_null(m, "got a message from the buffer");
+		is_int(buf->seek, 14, "buf->seek adjusted to exclude parsed line");
+		is_string(buf->buf, "PRIVMSG foo :a", /* didn't get all of the next line */
+		          "first line is removed from buffer");
+		is_string(m->command, "PRIVMSG", "parsed PRIVMSG message from buffer");
+		is_string(m->args[0], "foo", "parsed arg $1 from buffer");
+		is_string(m->args[1], "this is a long message (<64 chars)",
+				"parsed arg $2 from buffer");
+		is_null(m->args[2], "no arg $3 from buffer");
+
+		m = buffer_msg(buf);
+		is_null(m, "buffer doesn't contain a full message");
+
+		n = buffer_read(buf, fd);
+		is_int(n, buf->seek, "buffer_read returns the seek offset");
+		is_int(buf->seek, 45+2+12+2, "read the rest of the tempfile");
+		is_string(buf->buf, "PRIVMSG foo :another long message (>32 chars)\r\n"
+		                    "NICK renamed\r\n",
+		          "preserved the previous partial message string in the buffer");
+
+		m = buffer_msg(buf);
+		isnt_null(m, "got a message from the buffer");
+		is_int(buf->seek, 12+2, "buf->seek adjusted to exclude parsed line");
+		is_string(buf->buf, "NICK renamed\r\n",
+		          "second line is removed from the buffer");
+		is_string(m->command, "PRIVMSG", "parsed PRIVMSG message from buffer");
+		is_string(m->args[0], "foo", "parsed arg $1 from buffer");
+		is_string(m->args[1], "another long message (>32 chars)",
+				"parsed arg $2 from buffer");
+		is_null(m->args[2], "no arg $3 from buffer");
+
+		m = buffer_msg(buf);
+		isnt_null(m, "got a message from the buffer");
+		is_int(buf->seek, 0, "buf->seek adjusted to exclude parsed line");
+		is_string(buf->buf, "", "third (and final) line is removed from the buffer");
+		is_string(m->command, "NICK", "parsed NICK message from buffer");
+		is_string(m->args[0], "renamed", "parsed arg $1 from buffer");
+		is_null(m->args[1], "no arg $2 from buffer");
+
+		m = buffer_msg(buf);
+		is_null(m, "no more messages in buffer");
+
+		n = buffer_read(buf, fd);
+		is_int(n, 0, "EOF reached on fd");
+
+		fclose(t);
 	}
 
 	/****************************************************************************/
