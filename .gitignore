@@ -50,6 +50,7 @@ build/
 dev/
 
 t/00-parse
+t/01-memory
 t/06-wildcard
 
 *.debhelper.log

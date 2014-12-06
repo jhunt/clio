@@ -166,6 +166,7 @@ int pool_init(pool_t *p, size_t n, size_t each, void (*reset)(void*))
 
 	p->total = n;
 	p->each  = each;
+	p->reset = reset;
 
 	p->used = calloc(n, sizeof(int));
 	assert(p->used);
