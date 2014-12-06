@@ -7,7 +7,10 @@ AM_CFLAGS += -g
 AM_CFLAGS += @GCOV_CFLAGS@
 
 CORE_SRC =
-CORE_SRC += src/irc.h src/irc.c
+CORE_SRC += src/irc.h
+CORE_SRC += src/numerics.h
+CORE_SRC += src/bits.h
+CORE_SRC += src/irc.c
 
 sbin_PROGRAMS = ircd
 ircd_SOURCES = $(CORE_SRC) src/server.c

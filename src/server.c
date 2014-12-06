@@ -11,6 +11,7 @@
 
 typedef struct {
 	void *zmq;
+	char *self;
 
 	struct {
 		pool_t  users;
@@ -30,12 +31,34 @@ typedef struct {
 
 typedef struct {
 	void *zmq;
+	char *self;
 	int fd;
 } client_handler_t;
 
 typedef struct {
 	void *zmq;
+	char *self;
 } peer_handler_t;
+
+#define _s(x) ((x) ? (int)(strlen(x)) : 0), ((x) ? (x) : "")
+static void s_dump_msg(msg_t *m)
+{
+	if (!m) {
+		fprintf(stderr, "<null message>\n");
+		return;
+	}
+
+	fprintf(stderr, "MSG %p:\n", m);
+	fprintf(stderr, "  pre: %4i [%s]\n", _s(m->prefix));
+	fprintf(stderr, "  cmd: %4i [%s]\n", _s(m->command));
+	int i;
+	for (i = 0; i < 10; i++)
+		if (m->args[i]) fprintf(stderr, "   $%i: %4i [%s]\n", i, _s(m->args[i]));
+	for (i = 10; i < 15; i++)
+		if (m->args[i]) fprintf(stderr, "  $%i: %4i [%s]\n", i, _s(m->args[i]));
+	fprintf(stderr, "\n");
+}
+#undef _s
 
 static void* s_manager_thread(void *u)
 {
@@ -79,12 +102,32 @@ static void* s_client_thread(void *u)
 
 	printf("client handler started up on socket %i\n", c->fd);
 
-	char recvbuf[CLIENT_RECV_BUF];
-	size_t nread;
+	char *nick = NULL;
+	char *user = NULL;
+	char *pass = NULL;
+	char *mode = NULL;
+	char *real = NULL;
 
-	while ((nread = read(c->fd, recvbuf, CLIENT_RECV_BUF - 1)) > 0) {
-		recvbuf[nread] = '\0';
-		printf(">> [%i] '%s'\n", c->fd, recvbuf);
+	buffer_t *recvbuf = buffer_new(CLIENT_RECV_BUF);
+	while (buffer_read(recvbuf, c->fd) > 0) {
+		msg_t *m;
+		while ((m = buffer_msg(recvbuf)) != NULL) {
+			s_dump_msg(m);
+
+			if (strcmp(m->command, "NICK")) {
+				if (!m->args[0]) {
+					reply(c->fd, c->self, ERR_NONICKNAMEGIVEN,
+						":No nickname given");
+					continue;
+				}
+
+				if (!nick_valid(m->args[0])) {
+					reply(c->fd, c->self, ERR_ERRONEUSNICKNAME,
+						m->args[0], ":Erroneuous nickname");
+				}
+				free(pass); pass = strdup(m->args[0]);
+			}
+		}
 	}
 
 	printf("client handler on socket %i shutting down\n", c->fd);

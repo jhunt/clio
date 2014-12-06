@@ -22,6 +22,30 @@ static inline char* s_token(char **src)
 
 /**************************************************************************/
 
+int irc_isletter(char c)
+{
+	return (c >= 'A' && c <= 'Z')
+	    || (c >= 'a' && c <= 'z');
+}
+
+int irc_isdigit(char c)
+{
+	return (c >= '0' && c <= '9');
+}
+
+int irc_ishexdigit(char c)
+{
+	return (c >= '0' && c <= '9')
+	    || (c >= 'a' && c <= 'f')
+	    || (c >= 'A' && c <= 'F');
+}
+
+int irc_isspecial(char c)
+{
+	return (c >= 0x5b && c <= 0x5f)
+	    || (c >= 0x7b && c <= 0x7d);
+}
+
 void irc_toupper(void *_, size_t len)
 {
 	assert(_);
@@ -130,6 +154,10 @@ msg_t* msg_parse(const char *line, size_t len)
 	return m;
 }
 
+void reply(int fd, const char *pre, unsigned int num, ...)
+{
+}
+
 int wildcard(const char *str, const char *pat)
 {
 	const char *s = str;
@@ -204,6 +232,23 @@ void pool_rel(pool_t *p, void *data)
 	size_t i = (data - p->data) / p->each;
 	if (p->reset) (*p->reset)(data);
 	p->used[i] = 0;
+}
+
+int nick_valid(const char *n)
+{
+	if (!n || !*n) return 0;
+	if (!irc_isletter(*n)) return 0;
+
+	size_t i, l = strlen(n);
+	if (l > MAX_NICK) return 0;
+
+	for (i = 1; i < l; i++)
+		if (!irc_isletter(n[i])
+		 && !irc_isdigit(n[i])
+		 && !irc_isspecial(n[i])
+		 && n[i] != '-')
+			return 0;
+	return 1;
 }
 
 void user_reset(void *u)
