@@ -2,6 +2,7 @@
 #define IRC_H
 
 #include <stdint.h>
+#include <vigor.h>
 
 /*********************************/
 
@@ -246,12 +247,32 @@
 #define MAX_ARGS 15
 #define MAX_CMD  510
 #define MAX_NICK 9
-#define MAX_CHAN_NAME 50
-#define MAX_CHAN_TOPIC 510
+#define MAX_CHAN_NAME  50
+#define MAX_CHAN_TOPIC 140
 #define MAX_CHAN_KEY   63
+#define MAX_PASSWD     127
+#define MAX_SVC_DIST   127
+#define MAX_SVC_INFO   510
+#define MAX_USER_NAME  127
+#define MAX_PATH       1023
 
 typedef struct {
-	char  raw[MAX_CMD+1];
+	size_t   total;
+	size_t   each;
+
+	void    *data;
+	int     *used;
+
+	void (*reset)(void*);
+} pool_t;
+
+typedef struct {
+	size_t size;
+	size_t seek;
+	char   buf[1];
+} buffer_t;
+
+typedef struct {
 	char  buffer[MAX_CMD+1];
 	char *prefix;
 	char *command;
@@ -259,10 +280,27 @@ typedef struct {
 } msg_t;
 
 typedef struct {
-	int  sockfd;
 	char nick[MAX_NICK+1];
+	char name[MAX_USER_NAME+1];
 
 	uint8_t mode;
+} user_t;
+
+typedef struct {
+	char nick[MAX_NICK+1];
+	char dist[MAX_SVC_DIST+1];
+	char info[MAX_SVC_INFO+1];
+} svc_t;
+
+typedef struct {
+	int  sockfd;
+	char pass[MAX_PASSWD+1];
+
+	int32_t connected_at;
+	int32_t active_at;
+
+	user_t *user;
+	svc_t  *svc;
 } session_t;
 
 typedef struct {
@@ -285,11 +323,31 @@ typedef struct {
 	uint8_t mode;
 } member_t;
 
+/*********************************/
+
 void irc_toupper(char *s, size_t len);
 void irc_tolower(char *s, size_t len);
 
-msg_t* irc_parse_msg(const char *line, size_t len);
+buffer_t* buffer_new(size_t size);
+int buffer_read(buffer_t *buf, int fd);
+msg_t* buffer_msg(buffer_t *buf);
+
+msg_t* msg_parse(const char *line, size_t len);
 
 int wildcard(const char *str, const char *pat);
+
+int pool_init(pool_t *p, size_t n, size_t each, void (*reset)(void*));
+void *pool_acq(pool_t *p);
+void  pool_rel(pool_t *p, void *data);
+
+void user_reset(void*);
+
+void svc_reset(void*);
+
+void session_reset(void*);
+
+void channel_reset(void*);
+
+void member_reset(void*);
 
 #endif

@@ -49,7 +49,7 @@ build/
 
 dev/
 
-t/05-msg
+t/00-parse
 t/06-wildcard
 
 *.debhelper.log

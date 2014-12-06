@@ -14,6 +14,10 @@ AC_C_INLINE
 
 AC_CHECK_LIB(ctap, main,,
 	AC_MSG_ERROR(Missing ctap testing library - see http://github.com/filefrog/ctap))
+AC_CHECK_LIB(pthread, pthread_create,,
+	AC_MSG_ERROR(Missing POSIX threads library))
+AC_CHECK_LIB(zmq, zmq_ctx_new,,
+	AC_MSG_ERROR(Missing 0MQ library))
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
