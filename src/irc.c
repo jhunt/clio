@@ -154,8 +154,11 @@ msg_t* msg_parse(const char *line, size_t len)
 	return m;
 }
 
-void reply(int fd, const char *pre, unsigned int num, ...)
+void reply(int fd, char *msg)
 {
+	fprintf(stderr, "<< [%i] %s\n", fd, msg);
+	write(fd, msg, strlen(msg));
+	free(msg);
 }
 
 int wildcard(const char *str, const char *pat)
@@ -248,6 +251,20 @@ int nick_valid(const char *n)
 		 && !irc_isspecial(n[i])
 		 && n[i] != '-')
 			return 0;
+	return 1;
+}
+
+int username_valid(const char *n)
+{
+	if (!n || !*n) return 0;
+
+	size_t i, l = strlen(n);
+	for (i = 0; i < l; i++)
+		if (n[i] == '\0'
+		 || n[i] == '\r'
+		 || n[i] == '\n'
+		 || n[i] == ' '
+		 || n[i] == '@') return 0;
 	return 1;
 }
 

@@ -1,6 +1,11 @@
 #ifndef IRC_H
 #define IRC_H
 
+#include "../config.h"
+#define SERVER_SOFTWARE   PACKAGE_NAME
+#define SERVER_VERSION    PACKAGE_VERSION
+#define SERVER_BUILDDATE  __DATE__ " " __TIME__
+
 #include <stdint.h>
 #include <stdarg.h>
 #include <vigor.h>
@@ -35,7 +40,9 @@ typedef struct {
 
 typedef struct {
 	char nick[MAX_NICK+1];
-	char name[MAX_USER_NAME+1];
+	char real[MAX_USER_NAME+1];
+	char user[MAX_USER_NAME+1];
+	char host[MAX_USER_HOST+1];
 
 	uint8_t mode;
 } user_t;
@@ -91,7 +98,7 @@ int buffer_read(buffer_t *buf, int fd);
 msg_t* buffer_msg(buffer_t *buf);
 
 msg_t* msg_parse(const char *line, size_t len);
-void reply(int fd, const char *pre, unsigned int num, ...);
+void reply(int fd, char *msg);
 
 int wildcard(const char *str, const char *pat);
 
@@ -100,6 +107,7 @@ void *pool_acq(pool_t *p);
 void  pool_rel(pool_t *p, void *data);
 
 int nick_valid(const char *n);
+int username_valid(const char *n);
 
 void user_reset(void*);
 

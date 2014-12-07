@@ -297,6 +297,8 @@ TESTS {
 	}
 
 	subtest { /* token validation */
+
+		/* nick */
 		ok(nick_valid("foo"), "foo is a valid nick");
 		ok(nick_valid("foo12"), "foo12 is a valid nick");
 		ok(nick_valid("foo{|}"), "foo{|} is a valid nick");
@@ -312,6 +314,19 @@ TESTS {
 		ok(!nick_valid("t\tt"), "'t\\tt' is not a valid nick - contains whitespace");
 		ok(!nick_valid("fo{0}_bar_"), "fo{0}_bar_ is not a valid nick - too long");
 		ok(!nick_valid("fo\1bar"), "fo\\1bar is not a valid nick - contains SOH");
+
+		/* username */
+		ok(username_valid("foo"), "foo is a valid username");
+		ok(username_valid("99probs"), "99probs is a valid username");
+		ok(username_valid("*&^%$#_+_!"), "*&^%$#_+_! is a valid username");
+		ok(username_valid("tab\ttab"),   "tab\\ttab is a valid username");
+
+		ok(!username_valid(NULL), "(nil) is not a valid username");
+		ok(!username_valid(""), "'' is not a valid username");
+		ok(!username_valid("user@domain"), "user@domain is not a valid username (@)");
+		ok(!username_valid("user name"),   "user\\ name is not a valid username (sp)");
+		ok(!username_valid("user\rname"),  "user\\rname is not a valid username (cr)");
+		ok(!username_valid("user\nname"),  "user\\nname is not a valid username (lf)");
 	}
 
 	subtest { /* upper/lower conversion */

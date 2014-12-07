@@ -35,8 +35,14 @@
 
 /*********************************/
 
+#define CHAN_MODELIST "biklmnopstveIrS"       /* FIXME: verify */
+#define USER_MODELIST "oiwszcrkfydnxbauglZCD" /* FIXME: verify */
+
+/*********************************/
+
 #define MAX_ARGS 15
 #define MAX_CMD  510
+#define MAX_LINE  512
 #define MAX_NICK 9
 #define MAX_CHAN_NAME  50
 #define MAX_CHAN_TOPIC 140
@@ -45,6 +51,7 @@
 #define MAX_SVC_DIST   127
 #define MAX_SVC_INFO   510
 #define MAX_USER_NAME  127
+#define MAX_USER_HOST  63
 #define MAX_PATH       1023
 
 /*********************************/
