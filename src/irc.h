@@ -15,6 +15,10 @@
 #define chan_special(c)  ((c) == CHAN_TYPE_SPECIAL)
 #define chan_standard(c) (!chan_special(c))
 
+#define MANAGER_ENDPOINT "inproc://irc.manager.1"
+#define CLIENTS_ENDPOINT "inproc://irc.clients.1"
+#define PEERS_ENDPOINT   "inproc://irc.peers.1"
+
 typedef struct {
 	size_t   total;
 	size_t   each;

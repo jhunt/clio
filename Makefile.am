@@ -13,7 +13,7 @@ CORE_SRC += src/bits.h
 CORE_SRC += src/irc.c
 
 sbin_PROGRAMS = ircd
-ircd_SOURCES = $(CORE_SRC) src/server.c
+ircd_SOURCES = $(CORE_SRC) src/server.c src/manager.h src/manager.c
 
 TEST_SRC =
 TEST_SRC += t/test.h

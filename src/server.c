@@ -6,7 +6,9 @@
 #include <pthread.h>
 #include <netinet/ip.h>
 #include <vigor.h>
+
 #include "irc.h"
+#include "manager.h"
 
 #define CLIENT_RECV_BUF 8192
 
@@ -14,33 +16,6 @@ typedef struct {
 	char *name;
 	char *network;
 } my_ident_t;
-
-typedef struct {
-	void *zmq;
-	my_ident_t *self;
-
-	struct {
-		pool_t  users;
-		pool_t  svcs;
-		pool_t  sessions;
-		pool_t  channels;
-		pool_t  members;
-	} all;
-
-	struct {
-		int users;
-		int svcs;
-		int sessions;
-		int channels;
-	} count;
-
-	hash_t  users;
-	hash_t  svcs;
-	hash_t  sessions;
-	hash_t  channels;
-
-	char motd_file[MAX_PATH];
-} manager_t;
 
 typedef struct {
 	void *zmq;
@@ -100,88 +75,6 @@ static void s_dump_msg(msg_t *m)
 	fprintf(stderr, "\n");
 }
 #undef _s
-
-static void* s_manager_thread(void *u)
-{
-	int rc;
-	manager_t *mgr = (manager_t*)u;
-
-	void *router = zmq_socket(mgr->zmq, ZMQ_ROUTER);
-	assert(router);
-	rc = zmq_bind(router, "inproc://irc.manager.1");
-	assert(rc == 0);
-
-	void *client_pub = zmq_socket(mgr->zmq, ZMQ_PUB);
-	assert(client_pub);
-	rc = zmq_bind(client_pub, "inproc://irc.clients.1");
-	assert(rc == 0);
-
-	void *peer_pub = zmq_socket(mgr->zmq, ZMQ_PUB);
-	assert(peer_pub);
-	rc = zmq_bind(peer_pub, "inproc://irc.peers.1");
-	assert(rc == 0);
-
-	for (;;) {
-		pdu_t *q = pdu_recv(router), *a;
-		if (!q) break;
-
-		fprintf(stderr, "received a <%s> query\n", pdu_type(q));
-		if (strcmp(pdu_type(q), ".lusers") == 0) {
-			a = pdu_reply(q, ".ok", 8, "1", "1", "2", "3",
-			                       "5", "8", "13", "21");
-
-		} else if (strcmp(pdu_type(q), ".register") == 0) {
-			char *nick = pdu_string(q, 1);
-
-			user_t *who = hash_get(&mgr->users, nick);
-			if (who) {
-				free(nick);
-				a = pdu_reply(q, ".conflict", 0);
-				goto respond;
-			}
-
-			char *user = pdu_string(q, 2);
-			char *host = pdu_string(q, 3);
-			char *pass = pdu_string(q, 4);
-
-			/* FIXME: actually authenticate the u@h:p */
-			if (0) {
-				free(user); free(host); free(pass);
-				a = pdu_reply(q, ".authnfail", 0);
-				goto respond;
-			}
-
-			who = pool_acq(&mgr->all.users);
-			if (!who) {
-				a = pdu_reply(q, ".capfail", 0);
-				goto respond;
-			}
-
-			strncpy(who->nick, nick, MAX_NICK);
-			strncpy(who->user, user, MAX_USER_NAME);
-			strncpy(who->host, host, MAX_USER_HOST);
-
-			mgr->count.users++;
-			hash_set(&mgr->users, nick, who);
-			a = pdu_reply(q, ".ok", 0);
-
-		} else if (strcmp(pdu_type(q), ".getmode") == 0) {
-			a = pdu_reply(q, ".error", 1, "UNIMPLEMENTED");
-
-		} else if (strcmp(pdu_type(q), ".setmode") == 0) {
-			a = pdu_reply(q, ".error", 1, "UNIMPLEMENTED");
-
-		} else {
-			a = pdu_reply(q, ".error", 1, "unknown query type");
-		}
-
-respond:
-		pdu_free(q);
-		pdu_send_and_free(a, router);
-	}
-
-	return NULL;
-}
 
 #define CMD_PASS   1
 #define CMD_USER   2
@@ -381,11 +274,9 @@ static int s_client_mode(client_handler_t *c, msg_t *m)
 
 	pdu_t *a = pdu_recv(c->dealer);
 	if (strcmp(pdu_type(a), ".ok") == 0) {
-		uint8_t mode = atoi(pdu_string(a, 1));
-
 		/* parse the mode string */
-
-		q = pdu_make(".setmode", 2, m->args[0]
+		// uint8_t mode = atoi(pdu_string(a, 1));
+		//q = pdu_make(".setmode", 2, m->args[0]
 	}
 
 	return 1;
@@ -398,14 +289,14 @@ static void* s_client_thread(void *u)
 
 	c->dealer = zmq_socket(c->zmq, ZMQ_DEALER);
 	assert(c->dealer);
-	rc = zmq_connect(c->dealer, "inproc://irc.manager.1");
+	rc = zmq_connect(c->dealer, MANAGER_ENDPOINT);
 	assert(rc == 0);
 
 	c->sub = zmq_socket(c->zmq, ZMQ_SUB);
 	assert(c->sub);
 	rc = zmq_setsockopt(c->sub, ZMQ_SUBSCRIBE, "", 0);
 	assert(rc == 0);
-	rc = zmq_connect(c->sub, "inproc://irc.clients.1");
+	rc = zmq_connect(c->sub, CLIENTS_ENDPOINT);
 	assert(rc == 0);
 
 	printf("client handler started up on socket %i\n", c->fd);
@@ -463,14 +354,14 @@ static void* static_peer_thread(void *u)
 
 	void *req = zmq_socket(p->zmq, ZMQ_REQ);
 	assert(req);
-	rc = zmq_connect(req, "inproc://irc.manager.1");
+	rc = zmq_connect(req, MANAGER_ENDPOINT);
 	assert(rc == 0);
 
 	void *sub = zmq_socket(p->zmq, ZMQ_SUB);
 	assert(sub);
 	rc = zmq_setsockopt(sub, ZMQ_SUBSCRIBE, "", 0);
 	assert(rc == 0);
-	rc = zmq_connect(sub, "inproc://irc.peers.1");
+	rc = zmq_connect(sub, PEERS_ENDPOINT);
 	assert(rc == 0);
 
 	return NULL;
@@ -532,10 +423,9 @@ int main (int argc, char **argv)
 	pool_init(&mgr.all.members,  1200000, sizeof(member_t),  member_reset);
 	strncpy(mgr.motd_file, "/etc/motd", MAX_PATH);
 	mgr.zmq = zmq;
-	mgr.self = &me;
 
 	pthread_t tid;
-	rc = pthread_create(&tid, NULL, s_manager_thread, &mgr);
+	rc = pthread_create(&tid, NULL, manager_thread, &mgr);
 	assert(rc == 0);
 	rc = pthread_detach(tid);
 	assert(rc == 0);
