@@ -115,6 +115,7 @@ int username_valid(const char *n);
 
 void user_reset(void*);
 
+user_t* user_parse(const char *s, user_t *u);
 void svc_reset(void*);
 
 void session_reset(void*);

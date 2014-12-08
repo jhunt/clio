@@ -371,6 +371,49 @@ TESTS {
 
 	/****************************************************************************/
 
+	subtest { /* parsing user identities */
+		user_t user;
+		user_t *ptr;
+
+		ptr = user_parse("nick!user@host.tld", &user);
+		isnt_null(ptr, "user_parse() returns a valid pointer on success");
+		is_pointer(ptr, &user, "user_parse() returns addr of user buffer");
+		is_string(user.nick, "nick", "parsed nickname from user identity string");
+		is_string(user.user, "user", "parsed username from user identity string");
+		is_string(user.host, "host.tld", "parsed hostname from user identity string");
+
+		ptr = user_parse("jrh!jrandom@ha.ckr", NULL);
+		isnt_null(ptr, "user_parse() allocates and returns a user_t if necessary");
+		is_string(ptr->nick, "jrh", "parsed nickname from user identity string");
+		is_string(ptr->user, "jrandom", "parsed username from user identity string");
+		is_string(ptr->host, "ha.ckr", "parsed hostname from user identity string");
+
+		is_null(user_parse(NULL, NULL), "(nil) cannot be parsed as an identity");
+		is_null(user_parse(NULL, &user), "(nil) is returned even if we have a user buffer");
+		is_string(user.nick, "nick", "nick field untouched by failed parse");
+		is_string(user.user, "user", "user field untouched by failed parse");
+		is_string(user.host, "host.tld", "host field untouched by failed parse");
+
+		is_null(user_parse("nickonly", NULL), "missing user@host part");
+		is_null(user_parse("host.tld", NULL), "missing nick!user part");
+		is_null(user_parse("nick!user", NULL), "missing host part");
+		is_null(user_parse("user@host.tld", NULL), "missing nick part");
+		is_null(user_parse("!@", NULL), "empty nick/user/host");
+		is_null(user_parse("@@@@@@@@@@", NULL), "lots of @");
+		is_null(user_parse("nick!@", NULL), "empty user/host");
+		is_null(user_parse("!user@", NULL), "empty nick/host");
+		is_null(user_parse("!@host", NULL), "empty nick/user");
+		is_null(user_parse("nick!@host", NULL), "empty user");
+		is_null(user_parse("nick!user@", NULL), "empty host");
+		is_null(user_parse("!user@host", NULL), "empty host");
+		is_null(user_parse("nickthatistoolong!u@h", NULL), "invalid nick");
+		is_null(user_parse("nick!\nuser@h", NULL), "invalid user (newline)");
+		is_null(user_parse("nick!us er@h", NULL), "invalid user (whitespace)");
+		is_null(user_parse("nick! user@h", NULL), "invalid user (leading whitespace)");
+	}
+
+	/****************************************************************************/
+
 	subtest { /* buffer with small messages */
 		FILE *t = tmpfile();
 		int fd = fileno(t);

@@ -268,6 +268,42 @@ int username_valid(const char *n)
 	return 1;
 }
 
+user_t* user_parse(const char *s_, user_t *u)
+{
+	if (!s_) return NULL;
+
+	char *nick = NULL, *user = NULL, *host = NULL;
+	char *str = strdup(s_);
+	char *s = str, *p = s;
+	while (*p && *p != '!') p++;
+	if (!*p) return NULL;
+	*p = '\0';
+
+	if (!nick_valid(s)) return NULL;
+	nick = s;
+	s = ++p;
+
+	while (*p && *p != '@') p++;
+	if (!*p) return NULL;
+	*p = '\0';
+
+	if (!username_valid(s)) return NULL;
+	user = s;
+	s = ++p;
+
+	if (!*s) return NULL; /* no hostname */
+	host = s;
+
+	if (!u) u = calloc(1, sizeof(user_t));
+	if (!u) return NULL;
+
+	strncpy(u->nick, nick, MAX_NICK);
+	strncpy(u->user, user, MAX_USER_NAME);
+	strncpy(u->host, host, MAX_USER_HOST);
+	free(str);
+	return u;
+}
+
 void user_reset(void *u)
 {
 }
