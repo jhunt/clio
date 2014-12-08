@@ -297,6 +297,7 @@ user_t* user_parse(const char *s_, user_t *u)
 	if (!u) u = calloc(1, sizeof(user_t));
 	if (!u) return NULL;
 
+	strncpy(u->handle, s_, MAX_HANDLE);
 	strncpy(u->nick, nick, MAX_NICK);
 	strncpy(u->user, user, MAX_USER_NAME);
 	strncpy(u->host, host, MAX_USER_HOST);

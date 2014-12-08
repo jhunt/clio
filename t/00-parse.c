@@ -381,18 +381,21 @@ TESTS {
 		is_string(user.nick, "nick", "parsed nickname from user identity string");
 		is_string(user.user, "user", "parsed username from user identity string");
 		is_string(user.host, "host.tld", "parsed hostname from user identity string");
+		is_string(user.handle, "nick!user@host.tld", "full handle");
 
 		ptr = user_parse("jrh!jrandom@ha.ckr", NULL);
 		isnt_null(ptr, "user_parse() allocates and returns a user_t if necessary");
 		is_string(ptr->nick, "jrh", "parsed nickname from user identity string");
 		is_string(ptr->user, "jrandom", "parsed username from user identity string");
 		is_string(ptr->host, "ha.ckr", "parsed hostname from user identity string");
+		is_string(ptr->handle, "jrh!jrandom@ha.ckr", "full handle");
 
 		is_null(user_parse(NULL, NULL), "(nil) cannot be parsed as an identity");
 		is_null(user_parse(NULL, &user), "(nil) is returned even if we have a user buffer");
 		is_string(user.nick, "nick", "nick field untouched by failed parse");
 		is_string(user.user, "user", "user field untouched by failed parse");
 		is_string(user.host, "host.tld", "host field untouched by failed parse");
+		is_string(user.handle, "nick!user@host.tld", "handle untouched by failed parse");
 
 		is_null(user_parse("nickonly", NULL), "missing user@host part");
 		is_null(user_parse("host.tld", NULL), "missing nick!user part");

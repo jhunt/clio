@@ -54,6 +54,8 @@
 #define MAX_USER_HOST  63
 #define MAX_PATH       1023
 
+#define MAX_HANDLE MAX_NICK+1 + MAX_USER_NAME+1 + MAX_USER_HOST
+
 /*********************************/
 
 #endif

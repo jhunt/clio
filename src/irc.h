@@ -43,11 +43,12 @@ typedef struct {
 } msg_t;
 
 typedef struct {
+	char handle[MAX_HANDLE+1];  /* nick!user@host */
 	char nick[MAX_NICK+1];
-	char real[MAX_USER_NAME+1];
 	char user[MAX_USER_NAME+1];
 	char host[MAX_USER_HOST+1];
 
+	char real[MAX_USER_NAME+1];
 	uint8_t mode;
 } user_t;
 
