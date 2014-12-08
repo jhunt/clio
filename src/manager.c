@@ -54,6 +54,7 @@ DISPATCHER(login) {
 	char *mode = pdu_string(q, 3);
 	u->mode = umode_f(0, mode); free(mode);
 	strncpy(u->addr, "0.0.0.0", MAX_USER_ADDR);
+	u->last_active = time_ms();
 
 	m->count.users++;
 	hash_set(&m->users, ident, u);
@@ -119,14 +120,61 @@ DISPATCHER(userinfo) {
 				"E405", "no such user");
 	}
 
-	pdu_t *a = pdu_reply(q, ".user", 4,
+	char *ts = string("%li", u->last_active);
+	pdu_t *a = pdu_reply(q, ".user", 5,
 		u->handle,
 		u->addr,
 		umode_s(u->mode),
+		ts,
 		u->away ? u->away : "");
 
+	free(ts);
 	free(ident);
 	return a;
+}
+
+DISPATCHER(userping) {
+	char *ident = pdu_string(q, 1);
+	user_t *u = hash_get(&m->users, ident);
+	if (!u) {
+		free(ident);
+		return pdu_reply(q, ".error", 2,
+				"E405", "no such user");
+	}
+
+	u->last_active = time_ms();
+	free(ident);
+	return pdu_reply(q, ".ok", 0);
+}
+
+DISPATCHER(chanadd) {
+	char *name = pdu_string(q, 1);
+	channel_t *c = hash_get(&m->channels, name);
+	if (c) {
+		free(name);
+		return pdu_reply(q, ".error", 2,
+				"E406", "channel exists");
+	}
+
+	c = pool_acq(&m->all.channels);
+	if (!c) {
+		free(name);
+		return pdu_reply(q, ".error", 2,
+				"E501", "server overloaded");
+	}
+
+	if (!channame_valid(name)) {
+		free(name);
+		pool_rel(c);
+		return pdu_reply(q, ".error", 2,
+				"E402", "invalid channel name");
+	}
+
+	strncpy(c->name, name, MAX_CHAN_NAME);
+	c->type = c->name[0];
+
+	free(name);
+	return pdu_reply(q, ".ok", 0);
 }
 
 void* manager_thread(void *m_)
@@ -160,6 +208,7 @@ void* manager_thread(void *m_)
 			DISPATCH(a, logout);
 			DISPATCH(a, usermod);
 			DISPATCH(a, userinfo);
+			DISPATCH(a, userping);
 		}
 
 		if (!a) a = pdu_reply(q, ".error", 1, "unknown query type");

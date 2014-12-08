@@ -53,6 +53,7 @@ typedef struct {
 
 	char *away;
 	uint8_t mode;
+	int64_t last_active;
 } user_t;
 
 typedef struct {

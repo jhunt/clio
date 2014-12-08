@@ -214,8 +214,8 @@ TESTS {
 			"default IP address returned as .userinfo[1]"); free(s);
 		is_string(s = pdu_string(a, 3), "+isw",
 			"mode string returned as .userinfo[2]"); free(s);
-		is_string(s = pdu_string(a, 4), "",
-			"no away string (.userinfo[3])"); free(s);
+		is_string(s = pdu_string(a, 5), "",
+			"no away string (.userinfo[4])"); free(s);
 
 		/**   second login   **************************************/
 		q = pdu_make(".login", 3,
@@ -241,8 +241,8 @@ TESTS {
 			"default IP address returned as .userinfo[1]"); free(s);
 		is_string(s = pdu_string(a, 3), "+sw",
 			"mode string returned as .userinfo[2]"); free(s);
-		is_string(s = pdu_string(a, 4), "",
-			"no away string (.userinfo[3])"); free(s);
+		is_string(s = pdu_string(a, 5), "",
+			"no away string (.userinfo[4])"); free(s);
 
 		void *ret;
 		pthread_cancel(tid);
@@ -296,8 +296,8 @@ TESTS {
 			"default IP address returned as .userinfo[1]"); free(s);
 		is_string(s = pdu_string(a, 3), "+isw",
 			"mode string returned as .userinfo[2]"); free(s);
-		is_string(s = pdu_string(a, 4), "",
-			"no away string (.userinfo[3])"); free(s);
+		is_string(s = pdu_string(a, 5), "",
+			"no away string (.userinfo[4])"); free(s);
 
 		/**   failed usermod (no such user)   *********************/
 
@@ -364,8 +364,98 @@ TESTS {
 			"user identity returned as .userinfo[0]"); free(s);
 		is_string(s = pdu_string(a, 3), "+aow",
 			"updated mode string returned as .userinfo[2]"); free(s);
-		is_string(s = pdu_string(a, 4), "not here right now",
+		is_string(s = pdu_string(a, 5), "not here right now",
 			"updated away string returned as .userinfo[3]"); free(s);
+
+		void *ret;
+		pthread_cancel(tid);
+		pthread_join(tid, &ret);
+	}
+
+	subtest { /* user ping */
+		char *s;
+
+		manager_t m = {0};
+		pool_init(&m.all.users,     100000, sizeof(user_t),    user_reset);
+		pool_init(&m.all.svcs,         100, sizeof(svc_t),     svc_reset);
+		pool_init(&m.all.sessions,  100100, sizeof(session_t), session_reset);
+		pool_init(&m.all.channels,   30000, sizeof(channel_t), channel_reset);
+		pool_init(&m.all.members,  1200000, sizeof(member_t),  member_reset);
+		strncpy(m.motd_file, "/etc/motd", MAX_PATH);
+		m.zmq = zmq_ctx_new();
+
+		pthread_t tid;
+		is_int(pthread_create(&tid, NULL, manager_thread, &m), 0,
+			"spawned manager thread");
+
+		void *zocket = zmq_socket(m.zmq, ZMQ_DEALER);
+		is_int(zmq_connect(zocket, MANAGER_ENDPOINT), 0,
+			"connected to manager thread");
+		sleep_ms(150);
+
+		pdu_t *q, *a;
+
+		/**   failed ping (non-existent user)   *******************/
+		q = pdu_make(".userping", 1,
+			"test!NONEXISTENT@host.tld");
+		is_int(pdu_send_and_free(q, zocket), 0,
+			"sent [.userping] to manager thread");
+		a = pdu_recv(zocket);
+		isnt_null(a, "received response to our [.userping]");
+		is_string(s = pdu_string(a, 1), "E405", "no user == E405"); free(s);
+		is_string(s = pdu_string(a, 2), "no such user",
+			"human-friendly failure message"); free(s);
+
+		/**   successful login   **********************************/
+		q = pdu_make(".login", 3,
+			"test!user@host.tld",
+			"letmein",
+			"+wsi");
+		is_int(pdu_send_and_free(q, zocket), 0,
+			"sent [.login] to manager thread");
+		a = pdu_recv(zocket);
+		isnt_null(a, "received response to our [.login]");
+		is_string(pdu_type(a), ".ok", "manager accepted our [.login]");
+
+		q = pdu_make(".userinfo", 1,
+			"test!user@host.tld");
+		is_int(pdu_send_and_free(q, zocket), 0,
+			"sent [.userinfo] to manager thread");
+		a = pdu_recv(zocket);
+		isnt_null(a, "received response to our [.userinfo]");
+		is_string(pdu_type(a), ".user", "manager accepted our [.userinfo]");
+		is_string(s = pdu_string(a, 1), "test!user@host.tld",
+			"user identity returned as .userinfo[0]"); free(s);
+
+		char *t1 = pdu_string(a, 4);
+		ok(strlen(t1) >= 10, "user last-active timestamp found at .userinfo[2]");
+
+		sleep_ms(100); /* milliseconds */
+
+		q = pdu_make(".userping", 1,
+			"test!user@host.tld");
+		is_int(pdu_send_and_free(q, zocket), 0,
+			"sent [.userping] to manager thread");
+		a = pdu_recv(zocket);
+		isnt_null(a, "received response to our [.userping]");
+		is_string(pdu_type(a), ".ok", "manager accepted our [.userping]");
+
+		q = pdu_make(".userinfo", 1,
+			"test!user@host.tld");
+		is_int(pdu_send_and_free(q, zocket), 0,
+			"sent [.userinfo] to manager thread");
+		a = pdu_recv(zocket);
+		isnt_null(a, "received response to our [.userinfo]");
+		is_string(pdu_type(a), ".user", "manager accepted our [.userinfo]");
+		is_string(s = pdu_string(a, 1), "test!user@host.tld",
+			"user identity returned as .userinfo[0]"); free(s);
+
+		char *t2 = pdu_string(a, 4);
+		ok(strlen(t2) >= 10, "user last-active timestamp found at .userinfo[2]");
+		isnt_string(t2, t1, ".userping updated our timestamp");
+
+		free(t1);
+		free(t2);
 
 		void *ret;
 		pthread_cancel(tid);
