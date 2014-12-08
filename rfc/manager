@@ -1,0 +1,260 @@
+MANAGER protocol
+----------------
+
+
+  .ok
+
+  .error
+  E1234
+  message
+
+  .tempfail
+  T1234
+  message
+
+
+######################################################
+
+
+  .login
+  nick!user@host
+  password
+  mode
+
+                          <.ok, .error, .tempfail>
+
+  .logout
+  nick!user@host
+
+                          <.ok, .error, .tempfail>
+
+  .pwreset
+  nick!user@host
+
+                          <.ok, .error, .tempfail>
+
+
+######################################################
+
+
+  .usermod
+  nick!user@host
+  field
+  value
+
+                          <.ok, .error, .tempfail>
+
+  .userinfo
+  nick!user@host
+
+                          .user
+                          nick!user@host
+                          ipaddr
+                          mode
+                          away
+                          !!!
+
+  .userping
+  nick!user@host
+
+                          <.ok, .error, .tempfail>
+
+  .userfind
+  wildcard
+
+                          .user
+                          nick!user@host
+
+                          .user
+                          nick!user@host
+
+                          ...
+
+                          .done
+
+
+######################################################
+
+
+  .chanlist
+  wildcard
+
+                          .channel
+                          name
+                          mode
+                          topic
+                          users
+
+                          .channel
+                          name
+                          mode
+                          topic
+                          users
+
+                          ...
+
+                          .done
+
+  .chaninfo
+  name
+
+                          .channel
+                          name
+                          mode
+                          topic
+                          users
+
+  .chanadd
+  name
+  creator!user@host
+  mode
+  password
+  userlim
+
+                          <.ok, .error, .tempfail>
+
+  .chanmod
+  name
+  field
+  value
+
+                          <.ok, .error, .tempfail>
+
+  .chandel
+  name
+
+                          <.ok, .error, .tempfail>
+
+  .join
+  channel
+  nick!user@host
+  password
+
+                          <.ok, .error, .tempfail>
+
+  .leave
+  channel
+  nick!user@host
+
+                          <.ok, .error, .tempfail>
+
+  .members
+  name
+  wildcard
+
+                         .member
+                         name
+                         nick!user@host
+                         mode
+
+                         .member
+                         name
+                         nick!user@host
+                         mode
+
+                         ...
+
+                         .done
+
+  .chanban
+  name
+  wildcard
+  expiration
+
+                          <.ok, .error, .tempfail>
+
+  .chanunban
+  name
+  wildcard
+
+                          <.ok, .error, .tempfail>
+
+
+######################################################
+
+
+  .peeradd
+  name
+  address
+  port
+
+                          <.ok, .error, .tempfail>
+
+  .peerdel
+  name
+
+                          <.ok, .error, .tempfail>
+
+  .peermod
+  name
+  field
+  value
+
+                          <.ok, .error, .tempfail>
+
+  .peerinfo
+  name
+
+                          .peer
+                          name
+                          address
+                          port
+                          mode
+
+  .peerlist
+  wildcard
+
+                          .peer
+                          name
+                          address
+                          port
+                          mode
+
+                          .peer
+                          name
+                          address
+                          port
+                          mode
+
+                          ...
+
+                          .done
+
+
+######################################################
+
+
+  +sync
+  timestamp
+
+                          +join
+                          channel
+                          nick!user@host
+
+                          +leave
+                          channel
+                          nick!user@host
+
+                          +user
+                          name
+                          timestamp
+                          type [UD]
+                          field
+                          value
+
+                          +chan
+                          name
+                          timestamp
+                          type [UD]
+                          field
+                          value
+
+                          +peer
+                          name
+                          timestamp
+                          type [UD]
+                          field
+                          value
+
+                          ...
+
