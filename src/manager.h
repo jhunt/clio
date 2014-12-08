@@ -6,6 +6,9 @@
 
 typedef struct {
 	void *zmq;
+	void *zrouter;  /* ROUTER */
+	void *zclients; /* PUB for client handlers */
+	void *zpeers;   /* PUB for peer (server) handlers */
 
 	struct {
 		pool_t  users;
