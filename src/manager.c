@@ -92,6 +92,11 @@ DISPATCHER(usermod) {
 
 			} else if (strcmp(field, "addr") == 0) {
 				strncpy(u->addr, value, MAX_USER_ADDR);
+
+			} else if (strcmp(field, "away") == 0) {
+				free(u->away);
+				u->away = value;
+				value = NULL;
 			}
 
 			/* skip unknown field names */
@@ -118,7 +123,7 @@ DISPATCHER(userinfo) {
 		u->handle,
 		u->addr,
 		umode_s(u->mode),
-		"");
+		u->away ? u->away : "");
 
 	free(ident);
 	return a;

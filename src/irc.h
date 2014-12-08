@@ -50,6 +50,8 @@ typedef struct {
 
 	char real[MAX_USER_NAME+1];
 	char addr[MAX_USER_ADDR+1];
+
+	char *away;
 	uint8_t mode;
 } user_t;
 

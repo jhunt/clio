@@ -340,6 +340,33 @@ TESTS {
 		is_string(s = pdu_string(a, 3), "+ow",
 			"updated mode string returned as .userinfo[2]"); free(s);
 
+		/**   another successful usermod   ************************/
+
+		q = pdu_make(".usermod", 5,
+			"test!user@host.tld",
+			"mode", "+a",
+			"away", "not here right now",
+			"FOO",  "not a thing");
+		is_int(pdu_send_and_free(q, zocket), 0,
+			"sent [.usermode] to manager thread");
+		a = pdu_recv(zocket);
+		isnt_null(a, "received response to our [.usermod]");
+		is_string(pdu_type(a), ".ok", "manager accepted our [.usermod]");
+
+		q = pdu_make(".userinfo", 1,
+			"test!user@host.tld");
+		is_int(pdu_send_and_free(q, zocket), 0,
+			"sent [.userinfo] to manager thread");
+		a = pdu_recv(zocket);
+		isnt_null(a, "received response to our [.userinfo]");
+		is_string(pdu_type(a), ".user", "manager accepted our [.userinfo]");
+		is_string(s = pdu_string(a, 1), "test!user@host.tld",
+			"user identity returned as .userinfo[0]"); free(s);
+		is_string(s = pdu_string(a, 3), "+aow",
+			"updated mode string returned as .userinfo[2]"); free(s);
+		is_string(s = pdu_string(a, 4), "not here right now",
+			"updated away string returned as .userinfo[3]"); free(s);
+
 		void *ret;
 		pthread_cancel(tid);
 		pthread_join(tid, &ret);
