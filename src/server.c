@@ -415,17 +415,18 @@ int main (int argc, char **argv)
 
 	/******************************************************/
 
-	manager_t mgr;
-	pool_init(&mgr.all.users,     100000, sizeof(user_t),    user_reset);
-	pool_init(&mgr.all.svcs,         100, sizeof(svc_t),     svc_reset);
-	pool_init(&mgr.all.sessions,  100100, sizeof(session_t), session_reset);
-	pool_init(&mgr.all.channels,   30000, sizeof(channel_t), channel_reset);
-	pool_init(&mgr.all.members,  1200000, sizeof(member_t),  member_reset);
-	strncpy(mgr.motd_file, "/etc/motd", MAX_PATH);
-	mgr.zmq = zmq;
+	manager_t m;
+	memset(&m, 0, sizeof(m));
+	pool_init(&m.all.users,     100000, sizeof(user_t),    user_reset);
+	pool_init(&m.all.svcs,         100, sizeof(svc_t),     svc_reset);
+	pool_init(&m.all.sessions,  100100, sizeof(session_t), session_reset);
+	pool_init(&m.all.channels,   30000, sizeof(channel_t), channel_reset);
+	pool_init(&m.all.members,  1200000, sizeof(member_t),  member_reset);
+	strncpy(m.motd_file, "/etc/motd", MAX_PATH);
+	m.zmq = zmq;
 
 	pthread_t tid;
-	rc = pthread_create(&tid, NULL, manager_thread, &mgr);
+	rc = pthread_create(&tid, NULL, manager_thread, &m);
 	assert(rc == 0);
 	rc = pthread_detach(tid);
 	assert(rc == 0);

@@ -3,12 +3,9 @@
 #include <string.h>
 
 #define DISPATCHER(what) static pdu_t* _dispatch_ ## what (manager_t *m, pdu_t *q)
-#define DISPATCH(fn) do {                \
-	if (strcmp(pdu_type(q), "." #fn) == 0) {      \
-		pdu_t *a = _dispatch_ ## fn (m,q);  \
-		pdu_free(q);                        \
-		pdu_send_and_free(a, m->zrouter);    \
-	} } while (0)
+#define DISPATCH(a, fn) do { \
+	if (!a && strcmp(pdu_type(q), "." #fn) == 0) a = _dispatch_ ## fn (m,q); \
+} while (0)
 
 DISPATCHER(netsum) {
 	return pdu_reply(q, ".netsum", 8,
@@ -25,35 +22,38 @@ DISPATCHER(netsum) {
 
 DISPATCHER(login) {
 	char *nick = pdu_string(q, 1);
-
-	user_t *who = hash_get(&m->users, nick);
-	if (who) {
+	user_t *u = hash_get(&m->users, nick);
+	if (u) {
 		free(nick);
-		return pdu_reply(q, ".conflict", 0);
+		return pdu_reply(q, ".error", 2,
+				"E401", "already authenticated");
 	}
 
-	char *user = pdu_string(q, 2);
-	char *host = pdu_string(q, 3);
-	char *pass = pdu_string(q, 4);
-
-	/* FIXME: actually authenticate the u@h:p */
-	if (0) {
-		free(user); free(host); free(pass);
-		return pdu_reply(q, ".authnfail", 0);
+	u = pool_acq(&m->all.users);
+	if (!u) {
+		free(nick);
+		return pdu_reply(q, ".tempfail", 2,
+				"E501", "server overloaded");
 	}
 
-	who = pool_acq(&m->all.users);
-	if (!who) {
-		free(user); free(host); free(pass);
-		return pdu_reply(q, ".capfail", 0);
+	if (!user_parse(nick, u)) {
+		free(nick);
+		pool_rel(&m->all.users, u);
+		return pdu_reply(q, ".error", 2,
+				"E402", "invalid username");
 	}
 
-	strncpy(who->nick, nick, MAX_NICK);
-	strncpy(who->user, user, MAX_USER_NAME);
-	strncpy(who->host, host, MAX_USER_HOST);
+	/* FIXME: implement *real* authentication */
+	if (strcmp(u->user, "badpass") == 0) {
+		free(nick);
+		pool_rel(&m->all.users, u);
+		return pdu_reply(q, ".error", 2,
+				"E403", "authentication failed");
+	}
 
 	m->count.users++;
-	hash_set(&m->users, nick, who);
+	hash_set(&m->users, nick, u);
+	free(nick);
 	return pdu_reply(q, ".ok", 0);
 }
 
@@ -89,19 +89,21 @@ void* manager_thread(void *m_)
 	assert(rc == 0);
 
 	for (;;) {
-		pdu_t *q = pdu_recv(m->zrouter);
+		pdu_t *q = pdu_recv(m->zrouter),
+		      *a = NULL;
 		if (!q) break;
 
-		fprintf(stderr, "received a <%s> query\n", pdu_type(q));
-		DISPATCH(netsum);
-		DISPATCH(login);
-		DISPATCH(logout);
-		DISPATCH(usermod);
+		if (pdu_type(q)) {
+			DISPATCH(a, netsum);
+			DISPATCH(a, login);
+			DISPATCH(a, logout);
+			DISPATCH(a, usermod);
+		}
 
-		pdu_t *a = pdu_reply(q, ".error", 1, "unknown query type");
+		if (!a) a = pdu_reply(q, ".error", 1, "unknown query type");
 		pdu_free(q);
 		pdu_send_and_free(a, m->zrouter);
 	}
 
-	return NULL;
+	return NULL; /* LCOV_EXCL_LINE */
 }
