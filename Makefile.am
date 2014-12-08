@@ -69,3 +69,6 @@ coverage:
 	@echo >&2 "nothin doin"
 clean-local-cov:
 endif
+
+# aliases
+test: check

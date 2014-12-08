@@ -53,6 +53,7 @@ DISPATCHER(login) {
 
 	char *mode = pdu_string(q, 3);
 	u->mode = umode_f(0, mode); free(mode);
+	strncpy(u->addr, "0.0.0.0", MAX_USER_ADDR);
 
 	m->count.users++;
 	hash_set(&m->users, ident, u);
@@ -61,13 +62,46 @@ DISPATCHER(login) {
 }
 
 DISPATCHER(logout) {
-	char *nick = pdu_string(q, 1);
+	char *ident = pdu_string(q, 1);
 
-	hash_set(&m->users, nick, NULL);
+	hash_set(&m->users, ident, NULL);
+	free(ident);
 	return pdu_reply(q, ".ok", 0);
 }
 
 DISPATCHER(usermod) {
+	char *ident = pdu_string(q, 1);
+	user_t *u = hash_get(&m->users, ident);
+	if (!u) {
+		free(ident);
+		return pdu_reply(q, ".error", 2,
+				"E405", "no such user");
+	}
+
+
+	char *field, *value;
+	size_t n = 2;
+	for (;;) {
+		field = pdu_string(q, n++);
+		if (!field) break;
+
+		value = pdu_string(q, n++);
+		if (value) {
+			if (strcmp(field, "mode") == 0) {
+				u->mode = umode_f(u->mode, value);
+
+			} else if (strcmp(field, "addr") == 0) {
+				strncpy(u->addr, value, MAX_USER_ADDR);
+			}
+
+			/* skip unknown field names */
+
+			free(value);
+		}
+		free(field);
+	}
+
+	free(ident);
 	return pdu_reply(q, ".ok", 0);
 }
 
@@ -81,8 +115,8 @@ DISPATCHER(userinfo) {
 	}
 
 	pdu_t *a = pdu_reply(q, ".user", 4,
-		ident,
-		"0.0.0.0",
+		u->handle,
+		u->addr,
 		umode_s(u->mode),
 		"");
 

@@ -285,14 +285,15 @@ TESTS {
 
 		size_t i;
 		for (i = 0; i < 255; i++) {
+			diag("letter %0x", c[i].letter);
 			is_int(irc_isletter(i), c[i].letter,
-				"%0x %s a letter", i, (c[i].letter ? "is" : "is not"));
+				"%02x %s a letter", i, (c[i].letter ? "is" : "is not"));
 			is_int(irc_isdigit(i), c[i].digit,
-				"%0x %s a digit", i, (c[i].digit ? "is" : "is not"));
+				"%02x %s a digit", i, (c[i].digit ? "is" : "is not"));
 			is_int(irc_ishexdigit(i), c[i].hexdigit,
-				"%0x %s a hexdigit", i, (c[i].hexdigit ? "is" : "is not"));
+				"%02x %s a hexdigit", i, (c[i].hexdigit ? "is" : "is not"));
 			is_int(irc_isspecial(i), c[i].special,
-				"%0x %s special", i, (c[i].special ? "is" : "is not"));
+				"%02x %s special", i, (c[i].special ? "is" : "is not"));
 		}
 	}
 
@@ -654,6 +655,11 @@ TESTS {
 			"modes can be additively set in groups (+a+i+s)");
 
 		is_uint(umode_f(USER_MODE_AWAY | USER_MODE_INVISIBLE, "-a+sw"),
+			USER_MODE_INVISIBLE | USER_MODE_GETSRVMSGS | USER_MODE_GETWALLOPS,
+			"modes can be removed and set in groups (-a+sw)");
+
+		uint8_t m = USER_MODE_AWAY | USER_MODE_INVISIBLE;
+		is_uint(umode_f(m, "-a+sw"),
 			USER_MODE_INVISIBLE | USER_MODE_GETSRVMSGS | USER_MODE_GETWALLOPS,
 			"modes can be removed and set in groups (-a+sw)");
 

@@ -49,6 +49,7 @@ typedef struct {
 	char host[MAX_USER_HOST+1];
 
 	char real[MAX_USER_NAME+1];
+	char addr[MAX_USER_ADDR+1];
 	uint8_t mode;
 } user_t;
 

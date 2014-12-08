@@ -52,6 +52,7 @@
 #define MAX_SVC_INFO   510
 #define MAX_USER_NAME  127
 #define MAX_USER_HOST  63
+#define MAX_USER_ADDR  15 /* FIXME: IPv4 only */
 #define MAX_PATH       1023
 
 #define MAX_HANDLE MAX_NICK+1 + MAX_USER_NAME+1 + MAX_USER_HOST

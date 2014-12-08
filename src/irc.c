@@ -205,7 +205,7 @@ int pool_init(pool_t *p, size_t n, size_t each, void (*reset)(void*))
 	p->used = calloc(n, sizeof(int));
 	assert(p->used);
 
-	p->data = malloc(n * each);
+	p->data = calloc(n, each);
 	assert(p->data);
 
 	return 0;
@@ -305,7 +305,7 @@ user_t* user_parse(const char *s_, user_t *u)
 	return u;
 }
 
-#define _merge(f) m = (add ? (m | f) : (m & ~f))
+#define _merge(f) m = (add?(m|f):(m&~f))
 uint8_t umode_f(uint8_t m, const char *s)
 {
 	int add = 1;
@@ -315,6 +315,7 @@ uint8_t umode_f(uint8_t m, const char *s)
 		case '-': add = 0; break;
 		case 'a': _merge(USER_MODE_AWAY);       break;
 		case 'i': _merge(USER_MODE_INVISIBLE);  break;
+		case 'o': _merge(USER_MODE_OPER);       break;
 		case 's': _merge(USER_MODE_GETSRVMSGS); break;
 		case 'w': _merge(USER_MODE_GETWALLOPS); break;
 		}

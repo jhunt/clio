@@ -74,7 +74,7 @@ TESTS {
 		a = pdu_recv(zocket);
 		isnt_null(a, "received response to our [.login]");
 		is_string(pdu_type(a), ".error", "manager rejected our [.login]");
-		is_string(s = pdu_string(a, 1), "E402", "failed login is an E403"); free(s);
+		is_string(s = pdu_string(a, 1), "E402", "failed login is an E402"); free(s);
 		is_string(s = pdu_string(a, 2), "invalid username",
 			"human-friendly authfail message"); free(s);
 
@@ -155,7 +155,7 @@ TESTS {
 		pthread_join(tid, &ret);
 	}
 
-	subtest {
+	subtest { /* userinfo */
 		char *s;
 
 		manager_t m = {0};
@@ -177,6 +177,18 @@ TESTS {
 		sleep_ms(150);
 
 		pdu_t *q, *a;
+
+		/**   failed userinfo   ***********************************/
+		q = pdu_make(".userinfo", 1,
+			"test!user@host.tld");
+		is_int(pdu_send_and_free(q, zocket), 0,
+			"sent [.userinfo] to manager thread");
+		a = pdu_recv(zocket);
+		isnt_null(a, "received response to our [.userinfo]");
+		is_string(pdu_type(a), ".error", "manager rejected our [.userinfo]");
+		is_string(s = pdu_string(a, 1), "E405", "no user == E405"); free(s);
+		is_string(s = pdu_string(a, 2), "no such user",
+			"human-friendly failure message"); free(s);
 
 		/**   successful login   **********************************/
 		q = pdu_make(".login", 3,
@@ -286,6 +298,23 @@ TESTS {
 			"mode string returned as .userinfo[2]"); free(s);
 		is_string(s = pdu_string(a, 4), "",
 			"no away string (.userinfo[3])"); free(s);
+
+		/**   failed usermod (no such user)   *********************/
+
+		q = pdu_make(".usermod", 5,
+			"test!NONEXISTENT@host.tld",
+			"mode", "+o-si",
+			"addr", "1.2.3.4");
+		is_int(pdu_send_and_free(q, zocket), 0,
+			"sent [.usermode] to manager thread");
+		a = pdu_recv(zocket);
+		isnt_null(a, "received response to our [.usermod]");
+		is_string(pdu_type(a), ".error", "manager rejected our [.usermod]");
+		is_string(s = pdu_string(a, 1), "E405", "no user == E405"); free(s);
+		is_string(s = pdu_string(a, 2), "no such user",
+			"human-friendly failure message"); free(s);
+
+		/**   successful usermod   ********************************/
 
 		q = pdu_make(".usermod", 5,
 			"test!user@host.tld",
