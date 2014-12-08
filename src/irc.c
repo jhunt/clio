@@ -305,6 +305,39 @@ user_t* user_parse(const char *s_, user_t *u)
 	return u;
 }
 
+#define _merge(f) m = (add ? (m | f) : (m & ~f))
+uint8_t umode_f(uint8_t m, const char *s)
+{
+	int add = 1;
+	for (; *s; s++) {
+		switch (*s) {
+		case '+': add = 1; break;
+		case '-': add = 0; break;
+		case 'a': _merge(USER_MODE_AWAY);       break;
+		case 'i': _merge(USER_MODE_INVISIBLE);  break;
+		case 's': _merge(USER_MODE_GETSRVMSGS); break;
+		case 'w': _merge(USER_MODE_GETWALLOPS); break;
+		}
+	}
+	return m;
+}
+#undef _merge
+
+const char *umode_s(uint8_t m)
+{
+	static char s[28] = {0};
+	char *p = s;
+	*p++ = '+';
+	if (m & USER_MODE_AWAY)       *p++ = 'a';
+	if (m & USER_MODE_INVISIBLE)  *p++ = 'i';
+	if (m & USER_MODE_OPER)       *p++ = 'o';
+	if (m & USER_MODE_GETSRVMSGS) *p++ = 's';
+	if (m & USER_MODE_GETWALLOPS) *p++ = 'w';
+	*p++ = '\0';
+
+	return s;
+}
+
 void user_reset(void *u)
 {
 }

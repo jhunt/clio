@@ -634,5 +634,33 @@ TESTS {
 		is_null(m->args[2], "'%s' - no arg $3", c);
 	}
 
+	subtest { /* user mode flag parsing */
+		is_uint(umode_f(0, "+a"), USER_MODE_AWAY,       "+a == AWAY");
+		is_uint(umode_f(0, "+i"), USER_MODE_INVISIBLE,  "+i == INVISIBLE");
+		is_uint(umode_f(0, "+s"), USER_MODE_GETSRVMSGS, "+s == GETSRVMSGS");
+		is_uint(umode_f(0, "+w"), USER_MODE_GETWALLOPS, "+w == GETWALLOPS");
+
+		is_uint(umode_f(USER_MODE_AWAY,       "-a"), 0, "-a == !AWAY");
+		is_uint(umode_f(USER_MODE_INVISIBLE,  "-i"), 0, "-i == !INVISIBLE");
+		is_uint(umode_f(USER_MODE_GETSRVMSGS, "-s"), 0, "-s == !GETSRVMSGS");
+		is_uint(umode_f(USER_MODE_GETWALLOPS, "-w"), 0, "-w == !GETWALLOPS");
+
+		is_uint(umode_f(0, "+ais"),
+			USER_MODE_AWAY | USER_MODE_INVISIBLE | USER_MODE_GETSRVMSGS,
+			"modes can be additively set in groups (+ais)");
+
+		is_uint(umode_f(0, "+a+i+s"),
+			USER_MODE_AWAY | USER_MODE_INVISIBLE | USER_MODE_GETSRVMSGS,
+			"modes can be additively set in groups (+a+i+s)");
+
+		is_uint(umode_f(USER_MODE_AWAY | USER_MODE_INVISIBLE, "-a+sw"),
+			USER_MODE_INVISIBLE | USER_MODE_GETSRVMSGS | USER_MODE_GETWALLOPS,
+			"modes can be removed and set in groups (-a+sw)");
+
+		is_string(umode_s(umode_f(0, "+a+i+s")), "+ais", "+a+i+s == +ais");
+		is_string(umode_s(umode_f(0, "+ai-i")), "+a", "+a+i-i == +a");
+		is_string(umode_s(0xff), "+aiosw", "all mode flags == +aiosw");
+	}
+
 	done_testing();
 }

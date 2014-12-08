@@ -114,9 +114,11 @@ void  pool_rel(pool_t *p, void *data);
 int nick_valid(const char *n);
 int username_valid(const char *n);
 
+user_t* user_parse(const char *s, user_t *u);
+uint8_t umode_f(uint8_t m, const char *s);
+const char *umode_s(uint8_t m);
 void user_reset(void*);
 
-user_t* user_parse(const char *s, user_t *u);
 void svc_reset(void*);
 
 void session_reset(void*);

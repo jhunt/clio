@@ -6,8 +6,8 @@
 #define USER_MODE_AWAY         0x01
 #define USER_MODE_INVISIBLE    0x02
 #define USER_MODE_GETWALLOPS   0x04
-#define USER_MODE_OPER         0x08
-#define USER_MODE_LOCALOPER    0x10
+#define USER_MODE_GETSRVMSGS   0x08
+#define USER_MODE_OPER         0x10
 
 /*********************************/
 

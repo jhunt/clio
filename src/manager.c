@@ -21,23 +21,23 @@ DISPATCHER(netsum) {
 }
 
 DISPATCHER(login) {
-	char *nick = pdu_string(q, 1);
-	user_t *u = hash_get(&m->users, nick);
+	char *ident = pdu_string(q, 1);
+	user_t *u = hash_get(&m->users, ident);
 	if (u) {
-		free(nick);
+		free(ident);
 		return pdu_reply(q, ".error", 2,
 				"E401", "already authenticated");
 	}
 
 	u = pool_acq(&m->all.users);
 	if (!u) {
-		free(nick);
+		free(ident);
 		return pdu_reply(q, ".tempfail", 2,
 				"E501", "server overloaded");
 	}
 
-	if (!user_parse(nick, u)) {
-		free(nick);
+	if (!user_parse(ident, u)) {
+		free(ident);
 		pool_rel(&m->all.users, u);
 		return pdu_reply(q, ".error", 2,
 				"E402", "invalid username");
@@ -45,15 +45,18 @@ DISPATCHER(login) {
 
 	/* FIXME: implement *real* authentication */
 	if (strcmp(u->user, "badpass") == 0) {
-		free(nick);
+		free(ident);
 		pool_rel(&m->all.users, u);
 		return pdu_reply(q, ".error", 2,
 				"E403", "authentication failed");
 	}
 
+	char *mode = pdu_string(q, 3);
+	u->mode = umode_f(0, mode); free(mode);
+
 	m->count.users++;
-	hash_set(&m->users, nick, u);
-	free(nick);
+	hash_set(&m->users, ident, u);
+	free(ident);
 	return pdu_reply(q, ".ok", 0);
 }
 
@@ -66,6 +69,25 @@ DISPATCHER(logout) {
 
 DISPATCHER(usermod) {
 	return pdu_reply(q, ".ok", 0);
+}
+
+DISPATCHER(userinfo) {
+	char *ident = pdu_string(q, 1);
+	user_t *u = hash_get(&m->users, ident);
+	if (!u) {
+		free(ident);
+		return pdu_reply(q, ".error", 2,
+				"E405", "no such user");
+	}
+
+	pdu_t *a = pdu_reply(q, ".user", 4,
+		ident,
+		"0.0.0.0",
+		umode_s(u->mode),
+		"");
+
+	free(ident);
+	return a;
 }
 
 void* manager_thread(void *m_)
@@ -98,6 +120,7 @@ void* manager_thread(void *m_)
 			DISPATCH(a, login);
 			DISPATCH(a, logout);
 			DISPATCH(a, usermod);
+			DISPATCH(a, userinfo);
 		}
 
 		if (!a) a = pdu_reply(q, ".error", 1, "unknown query type");
