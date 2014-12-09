@@ -355,8 +355,12 @@ const char *umode_s(flags_t m)
 	return s;
 }
 
-void user_reset(void *u)
+void user_reset(void *u_)
 {
+	assert(u_);
+	user_t *u = (user_t *)u_;
+	free(u->away);
+	memset(u, 0, sizeof(user_t));
 }
 
 void svc_reset(void *s)
@@ -413,8 +417,11 @@ const char *cmode_s(flags_t m)
 
 	return s;
 }
-void channel_reset(void *c)
+void channel_reset(void *c_)
 {
+	assert(c_);
+	channel_t *c = (channel_t*)c_;
+	memset(c, 0, sizeof(channel_t));
 }
 
 void member_reset(void *m)
