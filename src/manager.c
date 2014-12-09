@@ -65,7 +65,11 @@ DISPATCHER(login) {
 DISPATCHER(logout) {
 	char *ident = pdu_string(q, 1);
 
-	hash_set(&m->users, ident, NULL);
+	user_t *u = hash_get(&m->users, ident);
+	if (u) {
+		pool_rel(&m->all.users, u);
+		hash_set(&m->users, ident, NULL);
+	}
 	free(ident);
 	return pdu_reply(q, ".ok", 0);
 }
@@ -170,11 +174,14 @@ DISPATCHER(chanadd) {
 				"E402", "invalid channel name");
 	}
 
+	char *s;
+
 	strncpy(c->name, name, MAX_CHAN_NAME);
 	c->type = c->name[0];
 
-	char *mode = pdu_string(q, 3);
-	c->mode = cmode_f(0, mode); free(mode);
+	strncpy(c->key, s = pdu_string(q, 4), MAX_CHAN_KEY); free(s);
+
+	c->mode = cmode_f(0, s = pdu_string(q, 3)); free(s);
 
 	hash_set(&m->channels, name, c);
 
@@ -195,11 +202,23 @@ DISPATCHER(chaninfo) {
 		name,
 		cmode_s(c->mode),
 		"", /* topic */
-		"", /* key */
+		c->key,
 		"", /* userlim */
 		""); /* user list */
 	free(name);
 	return a;
+}
+
+DISPATCHER(chandel) {
+	char *ident = pdu_string(q, 1);
+
+	channel_t *c = hash_get(&m->channels, ident);
+	if (c) {
+		pool_rel(&m->all.channels, c);
+		hash_set(&m->channels, ident, NULL);
+	}
+	free(ident);
+	return pdu_reply(q, ".ok", 0);
 }
 
 void* manager_thread(void *m_)
@@ -237,6 +256,7 @@ void* manager_thread(void *m_)
 
 			DISPATCH(a, chanadd);
 			DISPATCH(a, chaninfo);
+			DISPATCH(a, chandel);
 		}
 
 		if (!a) a = pdu_reply(q, ".error", 1, "unknown query type");
