@@ -285,7 +285,6 @@ TESTS {
 
 		size_t i;
 		for (i = 0; i < 255; i++) {
-			diag("letter %0x", c[i].letter);
 			is_int(irc_isletter(i), c[i].letter,
 				"%02x %s a letter", i, (c[i].letter ? "is" : "is not"));
 			is_int(irc_isdigit(i), c[i].digit,
@@ -328,6 +327,26 @@ TESTS {
 		ok(!username_valid("user name"),   "user\\ name is not a valid username (sp)");
 		ok(!username_valid("user\rname"),  "user\\rname is not a valid username (cr)");
 		ok(!username_valid("user\nname"),  "user\\nname is not a valid username (lf)");
+
+		/* channel */
+		ok(channame_valid("#foo"), "#foo is a valid channel name");
+		ok(channame_valid("&foo"), "&foo is a valid channel name");
+		ok(channame_valid("#\x3\x4\x5"), "#<binary> is a valid channel name");
+		ok(channame_valid("#the<pl[a]ce>"), "#the<pl[a]ce> is a valid channel name");
+		ok(channame_valid("#____________"), "#____________ is a valid channel name");
+		ok(channame_valid("#|the.bar|"), "#|the.bar| is a valid channel name");
+
+		ok(!channame_valid(NULL), "(nil) is not a valid channel name");
+		ok(!channame_valid(""), "'' is not a valid channel name");
+		ok(!channame_valid("#"), "'#' is not a valid channel name");
+		ok(!channame_valid("foo"), "foo is not a valid channel name");
+		ok(!channame_valid("+foo"), "+foo is not a valid channel name");
+		ok(!channame_valid("!foo"), "!foo is not a valid channel name");
+		ok(!channame_valid("#| |"), "#| | is not a valid channel name (space)");
+		ok(!channame_valid("#|\a|"), "#|\\a| is not a valid channel name (bel)");
+		ok(!channame_valid("#|\r|"), "#|\\r| is not a valid channel name (cr)");
+		ok(!channame_valid("#|\n|"), "#|\\n| is not a valid channel name (nl)");
+		ok(!channame_valid("#|,|"), "#|,| is not a valid channel name (sep)");
 	}
 
 	subtest { /* upper/lower conversion */
@@ -636,36 +655,79 @@ TESTS {
 	}
 
 	subtest { /* user mode flag parsing */
-		is_uint(umode_f(0, "+a"), USER_MODE_AWAY,       "+a == AWAY");
-		is_uint(umode_f(0, "+i"), USER_MODE_INVISIBLE,  "+i == INVISIBLE");
-		is_uint(umode_f(0, "+s"), USER_MODE_GETSRVMSGS, "+s == GETSRVMSGS");
-		is_uint(umode_f(0, "+w"), USER_MODE_GETWALLOPS, "+w == GETWALLOPS");
+		is_unsigned(umode_f(0, "+a"), USER_MODE_AWAY,       "+a == AWAY");
+		is_unsigned(umode_f(0, "+i"), USER_MODE_INVISIBLE,  "+i == INVISIBLE");
+		is_unsigned(umode_f(0, "+s"), USER_MODE_GETSRVMSGS, "+s == GETSRVMSGS");
+		is_unsigned(umode_f(0, "+w"), USER_MODE_GETWALLOPS, "+w == GETWALLOPS");
 
-		is_uint(umode_f(USER_MODE_AWAY,       "-a"), 0, "-a == !AWAY");
-		is_uint(umode_f(USER_MODE_INVISIBLE,  "-i"), 0, "-i == !INVISIBLE");
-		is_uint(umode_f(USER_MODE_GETSRVMSGS, "-s"), 0, "-s == !GETSRVMSGS");
-		is_uint(umode_f(USER_MODE_GETWALLOPS, "-w"), 0, "-w == !GETWALLOPS");
+		is_unsigned(umode_f(USER_MODE_AWAY,       "-a"), 0, "-a == !AWAY");
+		is_unsigned(umode_f(USER_MODE_INVISIBLE,  "-i"), 0, "-i == !INVISIBLE");
+		is_unsigned(umode_f(USER_MODE_GETSRVMSGS, "-s"), 0, "-s == !GETSRVMSGS");
+		is_unsigned(umode_f(USER_MODE_GETWALLOPS, "-w"), 0, "-w == !GETWALLOPS");
 
-		is_uint(umode_f(0, "+ais"),
+		is_unsigned(umode_f(0, "+ais"),
 			USER_MODE_AWAY | USER_MODE_INVISIBLE | USER_MODE_GETSRVMSGS,
 			"modes can be additively set in groups (+ais)");
 
-		is_uint(umode_f(0, "+a+i+s"),
+		is_unsigned(umode_f(0, "+a+i+s"),
 			USER_MODE_AWAY | USER_MODE_INVISIBLE | USER_MODE_GETSRVMSGS,
 			"modes can be additively set in groups (+a+i+s)");
 
-		is_uint(umode_f(USER_MODE_AWAY | USER_MODE_INVISIBLE, "-a+sw"),
+		is_unsigned(umode_f(USER_MODE_AWAY | USER_MODE_INVISIBLE, "-a+sw"),
 			USER_MODE_INVISIBLE | USER_MODE_GETSRVMSGS | USER_MODE_GETWALLOPS,
 			"modes can be removed and set in groups (-a+sw)");
 
-		uint8_t m = USER_MODE_AWAY | USER_MODE_INVISIBLE;
-		is_uint(umode_f(m, "-a+sw"),
+		flags_t m = USER_MODE_AWAY | USER_MODE_INVISIBLE;
+		is_unsigned(umode_f(m, "-a+sw"),
 			USER_MODE_INVISIBLE | USER_MODE_GETSRVMSGS | USER_MODE_GETWALLOPS,
 			"modes can be removed and set in groups (-a+sw)");
 
 		is_string(umode_s(umode_f(0, "+a+i+s")), "+ais", "+a+i+s == +ais");
 		is_string(umode_s(umode_f(0, "+ai-i")), "+a", "+a+i-i == +a");
-		is_string(umode_s(0xff), "+aiosw", "all mode flags == +aiosw");
+		is_string(umode_s(0xffffffff), "+aiosw", "all mode flags == +aiosw");
+	}
+
+	subtest { /* channel mode flag parsing */
+		is_unsigned(cmode_f(0, "+a"), CHAN_MODE_ANON,       "+a == ANON");
+		is_unsigned(cmode_f(0, "+p"), CHAN_MODE_PRIVATE,    "+p == PRIVATE");
+		is_unsigned(cmode_f(0, "+s"), CHAN_MODE_SECRET,     "+s == SECRET");
+		is_unsigned(cmode_f(0, "+i"), CHAN_MODE_INVITE,     "+i == INVITE");
+		is_unsigned(cmode_f(0, "+t"), CHAN_MODE_TLOCKED,    "+t == TLOCKED");
+		is_unsigned(cmode_f(0, "+n"), CHAN_MODE_NOEXTERN,   "+n == NOEXTERN");
+		is_unsigned(cmode_f(0, "+m"), CHAN_MODE_MODERATED,  "+m == MODERATED");
+		is_unsigned(cmode_f(0, "+l"), CHAN_MODE_USERLIM,    "+l == USERLIM");
+		is_unsigned(cmode_f(0, "+k"), CHAN_MODE_LOCKED,     "+k == LOCKED");
+		is_unsigned(cmode_f(0, "+q"), CHAN_MODE_QUIET,      "+q == QUIET");
+		is_unsigned(cmode_f(0, "+r"), CHAN_MODE_REOP,       "+r == REOP");
+
+		is_unsigned(cmode_f(CHAN_MODE_ANON,       "-a"), 0, "-a == !ANON");
+		is_unsigned(cmode_f(CHAN_MODE_PRIVATE,    "-p"), 0, "-p == !PRIVATE");
+		is_unsigned(cmode_f(CHAN_MODE_SECRET,     "-s"), 0, "-s == !SECRET");
+		is_unsigned(cmode_f(CHAN_MODE_INVITE,     "-i"), 0, "-i == !INVITE");
+		is_unsigned(cmode_f(CHAN_MODE_TLOCKED,    "-t"), 0, "-t == !TLOCKED");
+		is_unsigned(cmode_f(CHAN_MODE_NOEXTERN,   "-n"), 0, "-n == !NOEXTERN");
+		is_unsigned(cmode_f(CHAN_MODE_MODERATED,  "-m"), 0, "-m == !MODERATED");
+		is_unsigned(cmode_f(CHAN_MODE_USERLIM,    "-l"), 0, "-l == !USERLIM");
+		is_unsigned(cmode_f(CHAN_MODE_LOCKED,     "-k"), 0, "-k == !LOCKED");
+		is_unsigned(cmode_f(CHAN_MODE_QUIET,      "-q"), 0, "-q == !QUIET");
+		is_unsigned(cmode_f(CHAN_MODE_REOP,       "-r"), 0, "-r == !REOP");
+
+		is_unsigned(cmode_f(0, "+aqr"),
+			CHAN_MODE_ANON | CHAN_MODE_REOP | CHAN_MODE_QUIET,
+			"modes can be additively set in groups (+aqr)");
+
+		is_unsigned(cmode_f(0, "+a+r+q"),
+			CHAN_MODE_ANON | CHAN_MODE_REOP | CHAN_MODE_QUIET,
+			"modes can be additively set in groups (+a+r+q)");
+
+		flags_t m = CHAN_MODE_TLOCKED | CHAN_MODE_NOEXTERN | CHAN_MODE_MODERATED;
+		is_unsigned(cmode_f(m, "-nm+i"),
+			CHAN_MODE_TLOCKED | CHAN_MODE_INVITE,
+			"modes can be removed and set in groups (-nm+i)");
+
+		is_string(cmode_s(cmode_f(0, "+a+r+q")), "+aqr", "+a+r+q == +aqr");
+		is_string(cmode_s(cmode_f(0, "+ai-i")), "+a", "+a+i-i == +a");
+		is_string(cmode_s(0xffffffff), "+apsitnmlkqr", "all mode flags == +apsitnmlkqr");
 	}
 
 	done_testing();

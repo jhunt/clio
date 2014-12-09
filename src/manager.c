@@ -159,13 +159,13 @@ DISPATCHER(chanadd) {
 	c = pool_acq(&m->all.channels);
 	if (!c) {
 		free(name);
-		return pdu_reply(q, ".error", 2,
+		return pdu_reply(q, ".tempfail", 2,
 				"E501", "server overloaded");
 	}
 
 	if (!channame_valid(name)) {
 		free(name);
-		pool_rel(c);
+		pool_rel(&m->all.channels, c);
 		return pdu_reply(q, ".error", 2,
 				"E402", "invalid channel name");
 	}
@@ -173,8 +173,33 @@ DISPATCHER(chanadd) {
 	strncpy(c->name, name, MAX_CHAN_NAME);
 	c->type = c->name[0];
 
+	char *mode = pdu_string(q, 3);
+	c->mode = cmode_f(0, mode); free(mode);
+
+	hash_set(&m->channels, name, c);
+
 	free(name);
 	return pdu_reply(q, ".ok", 0);
+}
+
+DISPATCHER(chaninfo) {
+	char *name = pdu_string(q, 1);
+	channel_t *c = hash_get(&m->channels, name);
+	if (!c) {
+		free(name);
+		return pdu_reply(q, ".error", 2,
+				"E405", "no such channel");
+	}
+
+	pdu_t *a = pdu_reply(q, ".chan", 6,
+		name,
+		cmode_s(c->mode),
+		"", /* topic */
+		"", /* key */
+		"", /* userlim */
+		""); /* user list */
+	free(name);
+	return a;
 }
 
 void* manager_thread(void *m_)
@@ -209,6 +234,9 @@ void* manager_thread(void *m_)
 			DISPATCH(a, usermod);
 			DISPATCH(a, userinfo);
 			DISPATCH(a, userping);
+
+			DISPATCH(a, chanadd);
+			DISPATCH(a, chaninfo);
 		}
 
 		if (!a) a = pdu_reply(q, ".error", 1, "unknown query type");

@@ -16,15 +16,17 @@
 #define CHAN_TYPE_LOCAL         '&'
 #define CHAN_TYPE_SAFE          '+'
 
-#define CHAN_FLAG_ANON         0x01 /* a - anonymous */
-#define CHAN_FLAG_INVITE       0x02 /* i - invite-only */
-#define CHAN_FLAG_MODERATED    0x04 /* m - moderated */
-#define CHAN_FLAG_NOEXTERN     0x08 /* n - no external msgs */
-#define CHAN_FLAG_QUIET        0x10 /* q - quiet */
-#define CHAN_FLAG_SECRET       0x20 /* s - secret */
-#define CHAN_FLAG_REOP         0x40 /* r - reop */
-#define CHAN_FLAG_TLOCKED      0x80 /* t - topic locked (op only) */
-#define CHAN_FLAG_USERLIM      0x10 /* l - user limit */
+#define CHAN_MODE_ANON           0x1u /* a - anonymous */
+#define CHAN_MODE_PRIVATE        0x2u /* p - private */
+#define CHAN_MODE_SECRET         0x4u /* s - secret */
+#define CHAN_MODE_INVITE         0x8u /* i - invite-only */
+#define CHAN_MODE_TLOCKED       0x10u /* t - topic locked (op only) */
+#define CHAN_MODE_NOEXTERN      0x20u /* n - no external msgs */
+#define CHAN_MODE_MODERATED     0x40u /* m - moderated */
+#define CHAN_MODE_USERLIM       0x80u /* l - user limit */
+#define CHAN_MODE_LOCKED       0x100u /* k - keylocked */
+#define CHAN_MODE_QUIET        0x200u /* q - quiet */
+#define CHAN_MODE_REOP         0x400u /* r - reop */
 
 /*********************************/
 

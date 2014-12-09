@@ -19,6 +19,9 @@
 #define CLIENTS_ENDPOINT "inproc://irc.clients.1"
 #define PEERS_ENDPOINT   "inproc://irc.peers.1"
 
+typedef uint32_t flags_t;
+#define MAX_FLAGS 32
+
 typedef struct {
 	size_t   total;
 	size_t   each;
@@ -52,7 +55,7 @@ typedef struct {
 	char addr[MAX_USER_ADDR+1];
 
 	char *away;
-	uint8_t mode;
+	flags_t mode;
 	int64_t last_active;
 } user_t;
 
@@ -82,7 +85,7 @@ typedef struct {
 	size_t userlim;
 	/* FIXME: ban/exclude/invite masks */
 
-	uint8_t mode;
+	flags_t mode;
 } channel_t;
 
 typedef struct {
@@ -90,7 +93,7 @@ typedef struct {
 	channel_t *chan;
 	int32_t joined;
 
-	uint8_t mode;
+	flags_t mode;
 } member_t;
 
 /*********************************/
@@ -117,16 +120,19 @@ void  pool_rel(pool_t *p, void *data);
 
 int nick_valid(const char *n);
 int username_valid(const char *n);
+int channame_valid(const char *n);
 
 user_t* user_parse(const char *s, user_t *u);
-uint8_t umode_f(uint8_t m, const char *s);
-const char *umode_s(uint8_t m);
+flags_t umode_f(flags_t m, const char *s);
+const char *umode_s(flags_t m);
 void user_reset(void*);
 
 void svc_reset(void*);
 
 void session_reset(void*);
 
+flags_t cmode_f(flags_t m, const char *s);
+const char *cmode_s(flags_t m);
 void channel_reset(void*);
 
 void member_reset(void*);

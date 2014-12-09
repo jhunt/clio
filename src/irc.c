@@ -268,6 +268,22 @@ int username_valid(const char *n)
 	return 1;
 }
 
+int channame_valid(const char *n)
+{
+	if (!n) return 0;
+	if (*n != '#' && *n != '&') return 0;
+	if (!*++n) return 0; /* empty channel name */
+	for (;;)
+		switch (*n++) {
+			case '\0': return 1;
+			case ' ' :
+			case '\a':
+			case '\r':
+			case '\n':
+			case ',' : return 0;
+		}
+}
+
 user_t* user_parse(const char *s_, user_t *u)
 {
 	if (!s_) return NULL;
@@ -306,7 +322,7 @@ user_t* user_parse(const char *s_, user_t *u)
 }
 
 #define _merge(f) m = (add?(m|f):(m&~f))
-uint8_t umode_f(uint8_t m, const char *s)
+flags_t umode_f(flags_t m, const char *s)
 {
 	int add = 1;
 	for (; *s; s++) {
@@ -324,9 +340,9 @@ uint8_t umode_f(uint8_t m, const char *s)
 }
 #undef _merge
 
-const char *umode_s(uint8_t m)
+const char *umode_s(flags_t m)
 {
-	static char s[28] = {0};
+	static char s[MAX_FLAGS+1] = {0};
 	char *p = s;
 	*p++ = '+';
 	if (m & USER_MODE_AWAY)       *p++ = 'a';
@@ -351,6 +367,52 @@ void session_reset(void *s)
 {
 }
 
+
+#define _merge(f) m = (add?(m|f):(m&~f))
+flags_t cmode_f(flags_t m, const char *s)
+{
+	int add = 1;
+	for (; *s; s++) {
+		switch (*s) {
+		case '+': add = 1; break;
+		case '-': add = 0; break;
+		case 'a': _merge(CHAN_MODE_ANON);      break;
+		case 'p': _merge(CHAN_MODE_PRIVATE);   break;
+		case 's': _merge(CHAN_MODE_SECRET);    break;
+		case 'i': _merge(CHAN_MODE_INVITE);    break;
+		case 't': _merge(CHAN_MODE_TLOCKED);   break;
+		case 'n': _merge(CHAN_MODE_NOEXTERN);  break;
+		case 'm': _merge(CHAN_MODE_MODERATED); break;
+		case 'l': _merge(CHAN_MODE_USERLIM);   break;
+		case 'k': _merge(CHAN_MODE_LOCKED);    break;
+		case 'q': _merge(CHAN_MODE_QUIET);     break;
+		case 'r': _merge(CHAN_MODE_REOP);      break;
+		}
+	}
+	return m;
+}
+#undef _merge
+
+const char *cmode_s(flags_t m)
+{
+	static char s[MAX_FLAGS+1] = {0};
+	char *p = s;
+	*p++ = '+';
+	if (m & CHAN_MODE_ANON)      *p++ = 'a';
+	if (m & CHAN_MODE_PRIVATE)   *p++ = 'p';
+	if (m & CHAN_MODE_SECRET)    *p++ = 's';
+	if (m & CHAN_MODE_INVITE)    *p++ = 'i';
+	if (m & CHAN_MODE_TLOCKED)   *p++ = 't';
+	if (m & CHAN_MODE_NOEXTERN)  *p++ = 'n';
+	if (m & CHAN_MODE_MODERATED) *p++ = 'm';
+	if (m & CHAN_MODE_USERLIM)   *p++ = 'l';
+	if (m & CHAN_MODE_LOCKED)    *p++ = 'k';
+	if (m & CHAN_MODE_QUIET)     *p++ = 'q';
+	if (m & CHAN_MODE_REOP)      *p++ = 'r';
+	*p++ = '\0';
+
+	return s;
+}
 void channel_reset(void *c)
 {
 }

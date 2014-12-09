@@ -79,13 +79,13 @@ MANAGER protocol
   .chanlist
   wildcard
 
-                          .channel
+                          .chan
                           name
                           mode
                           topic
                           users
 
-                          .channel
+                          .chan
                           name
                           mode
                           topic
@@ -98,7 +98,7 @@ MANAGER protocol
   .chaninfo
   name
 
-                          .channel
+                          .chan
                           name
                           mode
                           topic
