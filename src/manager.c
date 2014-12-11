@@ -210,14 +210,43 @@ DISPATCHER(chaninfo) {
 }
 
 DISPATCHER(chandel) {
-	char *ident = pdu_string(q, 1);
+	char *name = pdu_string(q, 1);
 
-	channel_t *c = hash_get(&m->channels, ident);
+	channel_t *c = hash_get(&m->channels, name);
 	if (c) {
 		pool_rel(&m->all.channels, c);
-		hash_set(&m->channels, ident, NULL);
+		hash_set(&m->channels, name, NULL);
 	}
-	free(ident);
+	free(name);
+	return pdu_reply(q, ".ok", 0);
+}
+
+DISPATCHER(chanmod) {
+	char *name = pdu_string(q, 1);
+
+	channel_t *c = hash_get(&m->channels, name);
+	if (!c) {
+		free(name);
+		return pdu_reply(q, ".error", 2,
+				"E405", "no such channel");
+	}
+
+	char *field, *value;
+	size_t n = 2;
+	for (;;) {
+		field = pdu_string(q, n++);
+		if (!field) break;
+
+		value = pdu_string(q, n++);
+		if (value) {
+			/* skip unknown field names */
+
+			free(value);
+		}
+		free(field);
+	}
+
+	free(name);
 	return pdu_reply(q, ".ok", 0);
 }
 
@@ -247,16 +276,33 @@ void* manager_thread(void *m_)
 		if (!q) break;
 
 		if (pdu_type(q)) {
-			DISPATCH(a, netsum);
 			DISPATCH(a, login);
 			DISPATCH(a, logout);
+			/* .pwreset */
+
 			DISPATCH(a, usermod);
 			DISPATCH(a, userinfo);
 			DISPATCH(a, userping);
+			/* .userfind */
 
+			/* .chanlist */
 			DISPATCH(a, chanadd);
 			DISPATCH(a, chaninfo);
 			DISPATCH(a, chandel);
+			DISPATCH(a, chanmod);
+			/* .chanban */
+			/* .chanunban */
+			/* .join */
+			/* .leave */
+			/* .members */
+
+			/* .peeradd */
+			/* .peerdel */
+			/* .peermod */
+			/* .peerinfo */
+			/* .peerlist */
+
+			DISPATCH(a, netsum);
 		}
 
 		if (!a) a = pdu_reply(q, ".error", 1, "unknown query type");

@@ -416,6 +416,12 @@ TESTS {
 		MANAGER_TEARDOWN;
 	}
 
+	subtest { /* channel modification */
+		MANAGER_SETUP(1);
+
+		MANAGER_TEARDOWN;
+	}
+
 	subtest { /* channel capacity testing */
 		MANAGER_SETUP(1);
 
